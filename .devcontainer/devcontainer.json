@@ -1,0 +1,22 @@
+{
+  "name": "BSV 1.0 Dev Container",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/BSV_1.0",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [5173, 5433, 3000],
+  "remoteEnv": {
+    "DATABASE_URL": "postgresql://bvsuser:bvspassword@db:5432/ticket_issuer_db?schema=public"
+  },
+  "postCreateCommand": "cd bvs-ticket-issuer && npm install && cd ../bvs-frontend-tester && npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "prisma.prisma",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}

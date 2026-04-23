@@ -1,0 +1,24 @@
+Aplicación del modelo Modelo-Vista-Presentador (MVP) en bvs-ticket-issuer
+
+1. El Modelo (Model)
+Corazón del sistema. Contiene lógica de negocio, reglas de validación y gestión de datos.
+- Entidades: src/domain/entities/TicketEmission.ts
+- Casos de Uso: src/application/use-cases/EmitTicketHandler.ts
+- Persistencia: src/infrastructure/persistence/PrismaTicketRepository.ts y prisma/schema.prisma
+- Puertos de salida: src/domain/ports/out/ (Blockchain, Eventos)
+
+2. La Vista (View)
+Interfaz de entrada/salida de datos (Pasiva).
+- Rutas: src/infrastructure/web/routes.ts
+- Formato de Respuesta: Objetos DTO / JSON enviados al cliente.
+- Servidor: src/infrastructure/web/server.ts
+
+3. El Presentador (Presenter)
+Mediador entre la Vista y el Modelo.
+- Controlador: src/infrastructure/web/controllers/EmitTicketController.ts
+  Función: Transforma la petición de la Vista, coordina con el Modelo y define la respuesta de la Vista.
+
+Resumen de responsabilidades:
+- Modelo: Lógica y datos.
+- Vista: Entrada HTTP y salida JSON.
+- Presentador: Coordinación y flujo de datos entre ambos.
