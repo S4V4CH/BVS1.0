@@ -1,15 +1,15 @@
-import { createServer } from './infrastructure/web/server';
-import { setupRoutes } from './infrastructure/web/routes';
-import { EmitTicketController } from './infrastructure/web/controllers/EmitTicketController';
-import { EmitTicketHandler } from './application/use-cases/EmitTicketHandler';
+import { createServer } from './server';
+import { setupRoutes } from './routes';
+import { EmitTicketController } from './controllers/EmitTicketController';
+import { EmitTicketHandler } from './services/EmitTicketHandler';
 import { PrismaClient } from '@prisma/client';
-import { PrismaTicketRepository } from './infrastructure/persistence/PrismaTicketRepository';
+import { PrismaTicketRepository } from './adapters/persistence/PrismaTicketRepository';
 import { env } from './config/env';
-import { LocalKeyStrategy } from './infrastructure/blockchain/strategies/LocalKeyStrategy';
-import { StellarAdapter } from './infrastructure/blockchain/StellarAdapter';
-import { HttpEventNotifier } from './infrastructure/events/HttpEventNotifier';
-import { ValidUUIDFormatValidator, VoterTokenPresentValidator } from './application/validations/Rules';
-import { ValidatorChain } from './application/validations/ValidatorChain';
+import { LocalKeyStrategy } from './adapters/blockchain/strategies/LocalKeyStrategy';
+import { StellarAdapter } from './adapters/blockchain/StellarAdapter';
+import { HttpEventNotifier } from './adapters/events/HttpEventNotifier';
+import { ValidUUIDFormatValidator, VoterTokenPresentValidator } from './services/validations/Rules';
+import { ValidatorChain } from './services/validations/ValidatorChain';
 
 async function start() {
   const prisma = new PrismaClient();
@@ -19,12 +19,12 @@ async function start() {
 
   // Estrategias
   const signingStrategy = new LocalKeyStrategy(env.STELLAR_ISSUER_SECRET);
-  const stellarUrl = env.STELLAR_NETWORK === 'PUBLIC' 
-    ? 'https://horizon.stellar.org' 
+  const stellarUrl = env.STELLAR_NETWORK === 'PUBLIC'
+    ? 'https://horizon.stellar.org'
     : 'https://horizon-testnet.stellar.org';
-    
+
   // Blockchain y Eventos
-  const blockchainPort = new StellarAdapter(stellarUrl, signingStrategy, 15000); 
+  const blockchainPort = new StellarAdapter(stellarUrl, signingStrategy, 15000);
   const eventNotifier = new HttpEventNotifier(env.WEBHOOK_URL);
 
   // Cadenas de Validación
@@ -33,7 +33,7 @@ async function start() {
   uuidVal.setNext(tokenVal);
   const chain = new ValidatorChain(uuidVal);
 
-  // Inyección final asimilable al núcleo (Dominio)
+  // Capa de servicio (lógica de negocio / orquestación)
   const emitTicketUseCase = new EmitTicketHandler(
     repository,
     blockchainPort,
@@ -41,17 +41,16 @@ async function start() {
     chain
   );
 
-  // Web Adapter
+  // Controlador HTTP (MVC)
   const emitController = new EmitTicketController(emitTicketUseCase);
 
-  // Node Server HTTP Bootstrap
   const server = createServer();
   await setupRoutes(server, emitController);
 
   try {
     await prisma.$connect();
     server.log.info('Conectado exitosamente a la base de datos PostgreSQL off-chain');
-    
+
     const address = await server.listen({ port: env.PORT, host: '0.0.0.0' });
     server.log.info(`Microservicio Emisor de Tickets listo y escuchando en ${address}`);
   } catch (err) {
