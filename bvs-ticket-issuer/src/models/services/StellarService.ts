@@ -1,22 +1,26 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { IBlockchainPort, EmitTransactionPayload } from '../../domain/ports/out/BlockchainPort';
 import { SigningStrategy } from './strategies/SigningStrategy';
 
-export class StellarAdapter implements IBlockchainPort {
+export interface EmitTransactionPayload {
+  voteId: string;
+  electionId: string;
+  voterToken: string;
+}
+
+export class StellarService {
   private server: StellarSdk.Horizon.Server;
 
   constructor(
     networkUrl: string,
     private readonly signingStrategy: SigningStrategy,
-    private readonly timeoutMs: number = 10000 // Timeout explícito requerido
+    private readonly timeoutMs: number = 10000
   ) {
     this.server = new StellarSdk.Horizon.Server(networkUrl);
   }
 
-  async emitVoteTransaction(payload: EmitTransactionPayload): Promise<string> {
+  async emitToStellar(payload: EmitTransactionPayload): Promise<string> {
     const sourcePublicKey = await this.signingStrategy.getPublicKey();
     
-    // Configuración de timeout custom via Promise.race
     const executeBlockchainTalk = async () => {
       const accountResponse = await this.server.loadAccount(sourcePublicKey);
       
@@ -28,7 +32,7 @@ export class StellarAdapter implements IBlockchainPort {
         timebounds: await this.server.fetchTimebounds(100),
       })
       .addOperation(StellarSdk.Operation.payment({
-        destination: sourcePublicKey, // Enviamos un micro-asset genérico contra un contrato propio
+        destination: sourcePublicKey,
         asset: StellarSdk.Asset.native(),
         amount: "0.0000100"
       }))

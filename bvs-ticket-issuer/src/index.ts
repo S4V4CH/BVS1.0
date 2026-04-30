@@ -1,74 +1,67 @@
-import { createServer } from './infrastructure/web/server';
-import { setupRoutes } from './infrastructure/web/routes';
-import { EmitTicketController } from './infrastructure/web/controllers/EmitTicketController';
-import { EmitTicketHandler } from './application/use-cases/EmitTicketHandler';
-import { PrismaClient } from '@prisma/client';
-import { PrismaTicketRepository } from './infrastructure/persistence/PrismaTicketRepository';
+import { createServer } from './views/http/server';
+import { setupRoutes } from './views/http/routes';
+import { TicketController } from './views/http/TicketController';
+import { TicketViewModel } from './viewmodels/TicketViewModel';
+import { prisma } from './models/persistence/prisma';
+import { TicketRepository } from './models/persistence/TicketRepository';
 import { env } from './config/env';
-import { LocalKeyStrategy } from './infrastructure/blockchain/strategies/LocalKeyStrategy';
-import { StellarAdapter } from './infrastructure/blockchain/StellarAdapter';
-import { HttpEventNotifier } from './infrastructure/events/HttpEventNotifier';
-import { ValidUUIDFormatValidator, VoterTokenPresentValidator } from './application/validations/Rules';
-import { ValidatorChain } from './application/validations/ValidatorChain';
+import { LocalKeyStrategy } from './models/services/strategies/LocalKeyStrategy';
+import { StellarService } from './models/services/StellarService';
+import { EventService } from './models/services/EventService';
+import { ValidUUIDFormatValidator, VoterTokenPresentValidator } from './viewmodels/validators/Rules';
+import { ValidatorChain } from './viewmodels/validators/ValidatorChain';
 
 async function start() {
-  const prisma = new PrismaClient();
+  // 1. Models (Persistence & Services)
+  const repository = new TicketRepository();
 
-  // Adaptadores DB
-  const repository = new PrismaTicketRepository(prisma);
-
-  // Estrategias
   const signingStrategy = new LocalKeyStrategy(env.STELLAR_ISSUER_SECRET);
   const stellarUrl = env.STELLAR_NETWORK === 'PUBLIC' 
     ? 'https://horizon.stellar.org' 
     : 'https://horizon-testnet.stellar.org';
     
-  // Blockchain y Eventos
-  const blockchainPort = new StellarAdapter(stellarUrl, signingStrategy, 15000); 
-  const eventNotifier = new HttpEventNotifier(env.WEBHOOK_URL);
+  const stellarService = new StellarService(stellarUrl, signingStrategy, 15000); 
+  const eventService = new EventService(env.WEBHOOK_URL);
 
-  // Cadenas de Validación
+  // 2. ViewModels (Validation & Logic)
   const uuidVal = new ValidUUIDFormatValidator();
   const tokenVal = new VoterTokenPresentValidator();
   uuidVal.setNext(tokenVal);
-  const chain = new ValidatorChain(uuidVal);
+  const validatorChain = new ValidatorChain(uuidVal);
 
-  // Inyección final asimilable al núcleo (Dominio)
-  const emitTicketUseCase = new EmitTicketHandler(
+  const ticketViewModel = new TicketViewModel(
     repository,
-    blockchainPort,
-    eventNotifier,
-    chain
+    stellarService,
+    eventService,
+    validatorChain
   );
 
-  // Web Adapter
-  const emitController = new EmitTicketController(emitTicketUseCase);
+  // 3. Views (HTTP Interface)
+  const ticketController = new TicketController(ticketViewModel);
 
-  // Node Server HTTP Bootstrap
   const server = createServer();
-  await setupRoutes(server, emitController);
+  await setupRoutes(server, ticketController);
 
   try {
     await prisma.$connect();
-    server.log.info('Conectado exitosamente a la base de datos PostgreSQL off-chain');
+    server.log.info('Database connected (MVVM Model Layer)');
     
     const address = await server.listen({ port: env.PORT, host: '0.0.0.0' });
-    server.log.info(`Microservicio Emisor de Tickets listo y escuchando en ${address}`);
+    server.log.info(`MVVM Backend listening at ${address}`);
   } catch (err) {
     server.log.fatal(err);
     process.exit(1);
   }
 }
 
-// Apagados limpios
-process.on('SIGINT', async () => {
-    console.log("Apagando componentes del emisor...");
+// Clean shutdown
+const shutdown = async () => {
+    console.log("Shutting down MVVM Backend...");
+    await prisma.$disconnect();
     process.exit(0);
-});
+};
 
-process.on('SIGTERM', async () => {
-  console.log("Apagando componentes del emisor...");
-  process.exit(0);
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 start();

@@ -1,9 +1,15 @@
-import { IEventNotifier, EventPayload } from '../../domain/ports/out/EventNotifier';
 import pino from 'pino';
 
-const logger = pino({ name: 'HttpEventNotifier' });
+const logger = pino({ name: 'EventService' });
 
-export class HttpEventNotifier implements IEventNotifier {
+export interface EventPayload {
+  voteId: string;
+  status: 'CONFIRMED' | 'FAILED';
+  txHash?: string;
+  errorMessage?: string;
+}
+
+export class EventService {
   constructor(private readonly webhookUrl: string) {}
 
   async notifyEmissionResult(payload: EventPayload): Promise<void> {

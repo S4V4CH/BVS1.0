@@ -1,12 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import { ITicketRepository } from '../../domain/ports/out/TicketRepository';
-import { TicketEmission } from '../../domain/entities/TicketEmission';
+import { prisma } from './prisma';
+import { TicketEmission } from '../entities/TicketEmission';
 
-export class PrismaTicketRepository implements ITicketRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export class TicketRepository {
   async findById(voteId: string): Promise<TicketEmission | null> {
-    const raw = await this.prisma.ticketEmission.findUnique({ where: { voteId } });
+    const raw = await prisma.ticketEmission.findUnique({ where: { voteId } });
     if (!raw) return null;
     
     return TicketEmission.reconstitute({
@@ -22,7 +19,7 @@ export class PrismaTicketRepository implements ITicketRepository {
   }
 
   async save(ticket: TicketEmission): Promise<void> {
-    await this.prisma.ticketEmission.create({
+    await prisma.ticketEmission.create({
       data: {
         voteId: ticket.voteId,
         electionId: ticket.electionId,
@@ -33,7 +30,7 @@ export class PrismaTicketRepository implements ITicketRepository {
   }
 
   async update(ticket: TicketEmission): Promise<void> {
-    await this.prisma.ticketEmission.update({
+    await prisma.ticketEmission.update({
       where: { voteId: ticket.voteId },
       data: {
         status: ticket.status,
