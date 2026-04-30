@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { TicketController } from './TicketController';
+import { TicketController } from '../controllers/TicketController';
 
 export async function setupRoutes(
   fastify: FastifyInstance, 

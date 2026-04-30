@@ -1,5 +1,7 @@
 # INSTRUCCIONES DE REFACTORIZACIÓN: TRANSICIÓN A ARQUITECTURA MVVM
 
+> **Estado actual (backend):** `bvs-ticket-issuer` ya está en **MVC** (`controllers/`, `services/`, `models/`, `http/`). Las secciones de backend más abajo son históricas; el mapa vigente coincide con la estructura MVC del código.
+
 ## 1. OBJETIVO GENERAL
 Transformar el ecosistema BVS (Backend y Frontend) de su arquitectura Hexagonal actual a un modelo **MVVM (Model-View-ViewModel)**. El objetivo es centralizar la lógica de estado y transformación en ViewModels, simplificar las Vistas y robustecer el Modelo de datos y servicios.
 
@@ -14,20 +16,19 @@ Transformar el ecosistema BVS (Backend y Frontend) de su arquitectura Hexagonal 
 
 ## 3. MAPA DE REESTRUCTURACIÓN DE DIRECTORIOS
 
-### A. Backend (`bvs-ticket-issuer`)
-Convertir la estructura actual en:
+### A. Backend (`bvs-ticket-issuer`) — **implementado como MVC**
+Estructura vigente:
 ```text
 src/
-├── models/            # Datos, Prisma, Stellar Service (El "Qué")
-│   ├── entities/      # Definiciones de datos
-│   ├── services/      # Lógica de persistencia y Blockchain (Stellar)
-│   └── persistence/   # Prisma Client
-├── viewmodels/        # Orquestación, validación y preparación de datos (El "Cómo")
-│   ├── TicketViewModel.ts
-│   └── validators/    # Lógica de validación (Chain of Responsibility adaptada)
-└── views/             # Puntos de entrada y formato de salida (El "Dónde")
-    ├── http/          # Rutas y Controladores Fastify (La Vista de la API)
-    └── dto/           # Objetos de transferencia de datos de salida
+├── models/            # Entidades, persistencia, integraciones (Stellar, eventos), validadores
+│   ├── entities/
+│   ├── persistence/
+│   ├── services/
+│   └── validators/
+├── services/          # Orquestación del caso de uso (p. ej. TicketService)
+├── controllers/       # HTTP + Zod (p. ej. TicketController)
+├── http/              # Fastify: servidor y registro de rutas
+└── config/
 ```
 
 ### B. Frontend (`bvs-frontend-tester`)
@@ -94,5 +95,5 @@ Crear en la raíz un `.devcontainer/` con:
 6. **Validación:** Ejecutar `prisma generate` y verificar la conectividad con la Testnet de Stellar.
 
 ## 8. NOTAS DE ARQUITECTO
-- **Mantenimiento:** Aunque pasamos a MVVM, la lógica de `Chain of Responsibility` para validaciones debe permanecer dentro de la carpeta `viewmodels/validators` para no ensuciar el flujo principal.
+- **Mantenimiento:** La cadena de validación del backend vive en `models/validators/`; en el frontend, los hooks de UI pueden seguir en `viewmodels/`.
 - **Idempotencia:** Asegurar que el ViewModel gestione correctamente el estado de los tickets para evitar dobles emisiones en Stellar.

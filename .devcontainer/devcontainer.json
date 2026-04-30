@@ -4,7 +4,7 @@
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/BSV_1.0",
   "shutdownAction": "stopCompose",
-  "forwardPorts": [5173, 5433, 3000],
+  "forwardPorts": [5173, 5434, 3000],
   "remoteEnv": {
     "DATABASE_URL": "postgresql://bvsuser:bvspassword@db:5432/ticket_issuer_db?schema=public"
   },

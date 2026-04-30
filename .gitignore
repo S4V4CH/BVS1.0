@@ -1,0 +1,59 @@
+# --- Dependencias (nunca versionar) ---
+node_modules/
+
+# --- Salidas de build / compilación ---
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# --- Cachés de herramientas ---
+.vite/
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# --- Entornos y secretos (mantener .env.example si existe) ---
+.env
+.env.*
+!.env.example
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Tests / cobertura ---
+coverage/
+.nyc_output/
+
+# --- SO ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- IDEs ---
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Prisma (artefactos locales fuera de lo habitual; el cliente generado vive bajo node_modules) ---
+# Si en el futuro generáis el client en otra ruta, añadidla aquí.
+
+# --- Docker / volúmenes locales de nombre genérico ---
+*.pid
+
+# --- Misc ---
+*.tgz
+*.pem
+tmp/
+temp/

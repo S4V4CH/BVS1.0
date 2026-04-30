@@ -4,34 +4,35 @@ Este documento explica, en lenguaje simple, como se aplica MVVM en este proyecto
 
 ---
 
-## 1) MVVM EN EL BACKEND (bvs-ticket-issuer)
+## 1) MVC EN EL BACKEND (bvs-ticket-issuer)
 
-En un backend, MVVM no significa "pantallas". Aqui se usa para separar responsabilidades:
+En la API REST, MVC se entiende asi:
 
-- Model: datos y servicios tecnicos. Guarda y consulta informacion (Prisma, PostgreSQL) y hace integraciones (Stellar, eventos).
-- ViewModel: orquesta el caso de uso. Valida, llama al Model y prepara el resultado.
-- View: la capa HTTP. Solo recibe el request y devuelve la respuesta.
+- **Controller:** capa HTTP (Fastify). Recibe el request, valida entrada (Zod), delega y devuelve JSON.
+- **Service:** orquesta el caso de uso (validacion en cadena, idempotencia, persistencia, Stellar, webhooks). Equivale a la capa de aplicacion entre Controller y Model.
+- **Model:** entidades, persistencia (Prisma), integraciones tecnicas (Stellar, eventos).
 
 ### Ejemplo real en el proyecto
 
-- View: [bvs-ticket-issuer/src/views/http/TicketController.ts](bvs-ticket-issuer/src/views/http/TicketController.ts)
-  - Recibe la solicitud HTTP.
-  - Valida esquema con Zod.
-  - Llama al ViewModel.
+- Controller: [bvs-ticket-issuer/src/controllers/TicketController.ts](bvs-ticket-issuer/src/controllers/TicketController.ts)
+  - Valida el cuerpo con Zod.
+  - Llama a `TicketService.emitTicket` y envia la respuesta HTTP.
 
-- ViewModel: [bvs-ticket-issuer/src/viewmodels/TicketViewModel.ts](bvs-ticket-issuer/src/viewmodels/TicketViewModel.ts)
+- Service: [bvs-ticket-issuer/src/services/TicketService.ts](bvs-ticket-issuer/src/services/TicketService.ts)
   - Valida reglas de negocio.
-  - Asegura idempotencia (si el ticket ya existe, no emite de nuevo).
-  - Guarda en base de datos.
-  - Llama a Stellar y envia notificaciones.
-  - Devuelve un DTO simple para la vista.
+  - Idempotencia (si el ticket ya existe, devuelve el estado existente).
+  - Persistencia, Stellar y notificaciones.
+  - Devuelve un DTO JSON (`EmitTicketResponse`).
 
 - Model:
   - Persistencia: [bvs-ticket-issuer/src/models/persistence/TicketRepository.ts](bvs-ticket-issuer/src/models/persistence/TicketRepository.ts)
   - Entidad: [bvs-ticket-issuer/src/models/entities/TicketEmission.ts](bvs-ticket-issuer/src/models/entities/TicketEmission.ts)
-  - Servicios: [bvs-ticket-issuer/src/models/services](bvs-ticket-issuer/src/models/services)
+  - Servicios de integracion: [bvs-ticket-issuer/src/models/services](bvs-ticket-issuer/src/models/services)
+  - Validadores de cadena: [bvs-ticket-issuer/src/models/validators](bvs-ticket-issuer/src/models/validators)
 
-**Idea clave:** la "View" (controlador) es pasiva y delega todo al ViewModel.
+- Arranque HTTP: [bvs-ticket-issuer/src/http](bvs-ticket-issuer/src/http) (servidor Fastify y rutas).
+
+**Idea clave:** el Controller es delgado; la orquestacion vive en el Service; datos y adaptadores en Model.
 
 ---
 
@@ -63,7 +64,7 @@ En el frontend, MVVM es mas cercano al concepto clasico:
 
 ### Chain of Responsibility (Cadena de Validacion)
 
-- Donde: [bvs-ticket-issuer/src/viewmodels/validators/ValidatorChain.ts](bvs-ticket-issuer/src/viewmodels/validators/ValidatorChain.ts)
+- Donde: [bvs-ticket-issuer/src/models/validators/ValidatorChain.ts](bvs-ticket-issuer/src/models/validators/ValidatorChain.ts)
 - Que hace: encadena validadores, cada uno decide si agrega errores.
 - Por que ayuda: es facil agregar o quitar reglas sin tocar el flujo principal.
 
@@ -77,11 +78,11 @@ En el frontend, MVVM es mas cercano al concepto clasico:
 
 - Donde: [bvs-ticket-issuer/src/models/persistence/TicketRepository.ts](bvs-ticket-issuer/src/models/persistence/TicketRepository.ts)
 - Que hace: encapsula el acceso a la base de datos.
-- Por que ayuda: el ViewModel no sabe detalles de Prisma.
+- Por que ayuda: el Service no sabe detalles de Prisma.
 
 ### DTO / Mapper (Transformacion de datos)
 
-- Donde: metodo `mapToView()` en [bvs-ticket-issuer/src/viewmodels/TicketViewModel.ts](bvs-ticket-issuer/src/viewmodels/TicketViewModel.ts)
+- Donde: metodo `toEmitResponse()` en [bvs-ticket-issuer/src/services/TicketService.ts](bvs-ticket-issuer/src/services/TicketService.ts)
 - Que hace: transforma la entidad a un formato simple para la respuesta.
 - Por que ayuda: evita exponer el modelo interno.
 
@@ -89,7 +90,7 @@ En el frontend, MVVM es mas cercano al concepto clasico:
 
 - Donde: [bvs-ticket-issuer/src/models/services](bvs-ticket-issuer/src/models/services) y [bvs-frontend-tester/src/models/TicketService.ts](bvs-frontend-tester/src/models/TicketService.ts)
 - Que hace: encapsula integraciones externas y logica tecnica.
-- Por que ayuda: la vista y el ViewModel quedan limpios.
+- Por que ayuda: el Controller y el Service quedan limpios respecto a integraciones externas.
 
 ---
 
@@ -100,11 +101,11 @@ En el frontend, MVVM es mas cercano al concepto clasico:
 1) UI (View) recibe accion del usuario.
 2) ViewModel de frontend valida datos basicos y llama al Model (servicio).
 3) Servicio del frontend llama al endpoint HTTP.
-4) Controller (View del backend) valida el schema y llama al ViewModel.
-5) ViewModel del backend ejecuta validaciones (cadena de responsabilidad).
-6) ViewModel guarda/consulta en el repositorio.
-7) ViewModel llama a Stellar y actualiza estado.
-8) ViewModel retorna un DTO simple al Controller.
+4) Controller del backend valida el schema (Zod) y llama al Service.
+5) Service ejecuta validaciones (cadena de responsabilidad).
+6) Service guarda/consulta en el repositorio (Model).
+7) Service llama a Stellar y actualiza estado.
+8) Service retorna un DTO simple al Controller.
 9) Controller devuelve la respuesta al frontend.
 10) Frontend actualiza logs y estado de UI.
 
@@ -112,9 +113,7 @@ En el frontend, MVVM es mas cercano al concepto clasico:
 
 ## 5) RESUMEN SIMPLE (PARA QUIEN EMPIEZA)
 
-- MVVM divide el trabajo en tres partes: datos (Model), logica y estado (ViewModel), y presentacion (View).
-- En el backend, "View" significa controlador HTTP.
-- Los patrones (Repository, Strategy, Chain of Responsibility) ayudan a que el codigo sea mas ordenado y facil de mantener.
-- El flujo es claro: UI -> ViewModel -> Model -> (respuesta) -> View.
+- En el **backend**, el patron es **MVC** (Controller + Service + Model); la "View" de la API es el JSON que arma el Controller.
+- En el **frontend** sigue siendo **MVVM** (View + ViewModel + Model).
 
 Si quieres, puedo agregar un diagrama visual o un ejemplo paso a paso con datos reales.

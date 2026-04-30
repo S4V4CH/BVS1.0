@@ -3,9 +3,9 @@ import { TicketRepository } from '../models/persistence/TicketRepository';
 import { StellarService } from '../models/services/StellarService';
 import { EventService } from '../models/services/EventService';
 import { TicketEmission } from '../models/entities/TicketEmission';
-import { ValidatorChain } from './validators/ValidatorChain';
+import { ValidatorChain } from '../models/validators/ValidatorChain';
 
-const logger = pino({ name: 'TicketViewModel' });
+const logger = pino({ name: 'TicketService' });
 
 export interface EmitTicketRequest {
   voteId: string;
@@ -13,14 +13,15 @@ export interface EmitTicketRequest {
   voterToken: string;
 }
 
-export interface TicketViewData {
+/** Cuerpo de respuesta JSON del caso emit (capa de presentación del recurso). */
+export interface EmitTicketResponse {
   voteId: string;
   status: string;
   txHash: string | null;
   errorMessage: string | null;
 }
 
-export class TicketViewModel {
+export class TicketService {
   constructor(
     private readonly repository: TicketRepository,
     private readonly stellarService: StellarService,
@@ -28,7 +29,7 @@ export class TicketViewModel {
     private readonly validatorChain: ValidatorChain
   ) {}
 
-  async emitTicket(request: EmitTicketRequest): Promise<TicketViewData> {
+  async emitTicket(request: EmitTicketRequest): Promise<EmitTicketResponse> {
     logger.info({ voteId: request.voteId }, "Starting ticket emission process");
 
     // 1. Validation
@@ -40,7 +41,7 @@ export class TicketViewModel {
     // 2. Idempotency Check
     const existingTicket = await this.repository.findById(request.voteId);
     if (existingTicket) {
-      return this.mapToView(existingTicket);
+      return this.toEmitResponse(existingTicket);
     }
 
     // 3. Create Model
@@ -82,10 +83,10 @@ export class TicketViewModel {
       });
     }
 
-    return this.mapToView(ticket);
+    return this.toEmitResponse(ticket);
   }
 
-  private mapToView(ticket: TicketEmission): TicketViewData {
+  private toEmitResponse(ticket: TicketEmission): EmitTicketResponse {
     return {
       voteId: ticket.voteId,
       status: ticket.status,

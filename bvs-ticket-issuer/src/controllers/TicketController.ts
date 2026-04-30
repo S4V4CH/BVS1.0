@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { TicketViewModel } from '../../viewmodels/TicketViewModel';
+import { TicketService } from '../services/TicketService';
 
 const emitSchema = z.object({
   voteId: z.string().uuid(),
@@ -9,16 +9,14 @@ const emitSchema = z.object({
 });
 
 export class TicketController {
-  constructor(private readonly viewModel: TicketViewModel) {}
+  constructor(private readonly ticketService: TicketService) {}
 
   async handleEmit(request: FastifyRequest, reply: FastifyReply) {
     try {
       const payload = emitSchema.parse(request.body);
 
-      // MVVM: The View calls the ViewModel
-      const result = await this.viewModel.emitTicket(payload);
+      const result = await this.ticketService.emitTicket(payload);
 
-      // Return the transformed data from ViewModel
       return reply.status(202).send(result);
 
     } catch (error: any) {

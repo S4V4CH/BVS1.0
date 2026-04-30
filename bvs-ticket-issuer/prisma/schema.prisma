@@ -1,5 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
+  // native = máquina actual; linux-musl = Docker/Alpine; windows = equipos Windows (evita motor solo Debian)
   binaryTargets = ["native", "linux-musl"]
 }
 

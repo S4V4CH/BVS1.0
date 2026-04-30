@@ -158,7 +158,7 @@ El programador no usa la palabra clave `new Ticket()`, pide servicialmente crear
 #### Paso 2 — El ConcreteCreator arma, rellena y devuelve el objeto sellado
 La clase blinda su constructor para acceso directo (`private constructor`). Y su public factory Method toma total control rellenando artificialmente todos los campos nulos base para inicializar el objeto del Ticket purificado.
 ```typescript
-// src/domain/entities/TicketEmission.ts
+// bvs-ticket-issuer/src/models/entities/TicketEmission.ts
   // Factory para nuevas emisiones
   public static create(props: Omit<TicketProps, 'status' | 'txHash' | 'errorMessage' | 'createdAt' | 'updatedAt'>): TicketEmission {
     if (!props.voteId || !props.electionId || !props.voterToken) {
@@ -255,7 +255,7 @@ Actúa literalmente como un enchufe pasador para disfrazar tecnología compleja.
 #### Paso 1 — [Target] declara un lenguaje amistoso en BVS
 Todo nuestro proyecto creerá que la Blockchain Testnet mundial no pesa nada y simplemente es una cajita que recibe un pequeño Payload y dice que le va a devolver una String asíncrona de confirmación de hashes.
 ```typescript
-// src/domain/ports/out/BlockchainPort.ts
+// bvs-ticket-issuer/src/models/services/StellarService.ts
 export interface EmitTransactionPayload {
   voteId: string;
   electionId: string;
@@ -328,7 +328,7 @@ El patrón Observer (Observador) permite la apertura a notificar y lanzar avisos
 #### Paso 1 — [Observer] dicta la morfología del anuncio
 Fuerza a todos los que deseen notificar o escuchar la finalización un ticket que posean una estructura predecible de mensajería (El status fallido o confirmado).
 ```typescript
-// src/domain/ports/out/EventNotifier.ts
+// bvs-ticket-issuer/src/models/services/EventService.ts
 export interface EventPayload {
   voteId: string;
   status: 'CONFIRMED' | 'FAILED';

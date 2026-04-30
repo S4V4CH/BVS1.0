@@ -45,7 +45,7 @@ export const Dashboard: React.FC = () => {
                 <span className="icon">⚡</span>
                 <h1>BVS <span>Ticket Issuer</span></h1>
             </div>
-            <p className="subtitle">Microservicio de Emisión de Tickets Blockchain (MVVM)</p>
+            <p className="subtitle">Microservicio de emisión de tickets — API en MVC, panel de prueba en React</p>
         </header>
 
         <main className="dashboard">
