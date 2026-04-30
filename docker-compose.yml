@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: bvs-ticket-db
+    environment:
+      POSTGRES_USER: bvsuser
+      POSTGRES_PASSWORD: bvspassword
+      POSTGRES_DB: ticket_issuer_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bvsuser -d ticket_issuer_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./bvs-ticket-issuer
+    container_name: bvs-ticket-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://bvsuser:bvspassword@db:5432/ticket_issuer_db?schema=public
+      - PORT=3000
+      - LOG_LEVEL=info
+      - STELLAR_NETWORK=TESTNET
+      - STELLAR_ISSUER_SECRET=SDAZTFVHR32KKW56XQOUQ3VJ7IT26QVNC5MOTXSEGMEDXOIAJWAPN5VI
+      - WEBHOOK_URL=http://localhost:8080/webhook-test
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./bvs-ticket-issuer:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./bvs-frontend-tester
+    container_name: bvs-ticket-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
+    volumes:
+      - ./bvs-frontend-tester:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
