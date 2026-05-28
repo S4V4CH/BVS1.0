@@ -32,7 +32,7 @@ export class ValidatorChain {
     await this.initialValidator.validate(context, errors);
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

@@ -1,5 +1,7 @@
 # Patrones de Diseño Estructurales en BVS Ticket Issuer
 
+> **Estructura vigente (hexagonal):** `bvs-ticket-issuer/src/domain/`, `application/`, `infrastructure/`. Los ejemplos de rutas en este documento coinciden con el código activo salvo que se indique lo contrario.
+
 Este documento consolida el análisis técnico de los 6 patrones de diseño estructurales aplicados rigurosamente en el código del microservicio.
 
 ---

@@ -1,6 +1,6 @@
 # INSTRUCCIONES DE REFACTORIZACIÓN: TRANSICIÓN A ARQUITECTURA MVVM
 
-> **Estado actual (backend):** `bvs-ticket-issuer` ya está en **MVC** (`controllers/`, `services/`, `models/`, `http/`). Las secciones de backend más abajo son históricas; el mapa vigente coincide con la estructura MVC del código.
+> **Estado actual (backend):** `bvs-ticket-issuer` está en **arquitectura hexagonal** (`domain/`, `application/`, `infrastructure/`). Las secciones de backend MVC más abajo son históricas. El frontend sigue en **MVVM**.
 
 ## 1. OBJETIVO GENERAL
 Transformar el ecosistema BVS (Backend y Frontend) de su arquitectura Hexagonal actual a un modelo **MVVM (Model-View-ViewModel)**. El objetivo es centralizar la lógica de estado y transformación en ViewModels, simplificar las Vistas y robustecer el Modelo de datos y servicios.
