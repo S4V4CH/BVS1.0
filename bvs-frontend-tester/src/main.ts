@@ -69,18 +69,43 @@ btnEmit.addEventListener('click', async () => {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    const rawBody = await response.text();
+    let data: Record<string, unknown> = {};
+    if (rawBody) {
+      try {
+        data = JSON.parse(rawBody);
+      } catch {
+        addLog(`Respuesta inválida del servidor (HTTP ${response.status})`, 'error');
+        btnEmit.disabled = false;
+        return;
+      }
+    } else if (!response.ok) {
+      addLog(
+        `Sin respuesta del backend (HTTP ${response.status}). ¿Está corriendo en :3000 y PostgreSQL en :5433?`,
+        'error'
+      );
+      btnEmit.disabled = false;
+      return;
+    }
 
     if (response.ok) {
-      addLog(`Backend Aceptó la solicitud (202 ACCEPTED)`, 'info');
+      addLog(`Backend aceptó la solicitud (HTTP ${response.status})`, 'info');
       addLog('Iniciando búsqueda de la transacción en Stellar Horizon...', 'warn');
       pollForTransaction(payload.voterToken);
     } else {
-      addLog(`Error del Backend: ${data.message || data.error}`, 'error');
+      const msg =
+        (typeof data.message === 'string' && data.message) ||
+        (typeof data.error === 'string' && data.error) ||
+        rawBody ||
+        `HTTP ${response.status}`;
+      addLog(`Error del backend: ${msg}`, 'error');
       btnEmit.disabled = false;
     }
   } catch (err) {
-    addLog(`Error de conexión: ${err}`, 'error');
+    addLog(
+      `Error de conexión: ${err}. Verifica que el backend esté en marcha (npm run dev en bvs-ticket-issuer).`,
+      'error'
+    );
     btnEmit.disabled = false;
   }
 });
